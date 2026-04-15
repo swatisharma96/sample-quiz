@@ -1,65 +1,178 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Quiz = {
+  quiz_name: string;
+  questions: {
+    id: number;
+    text: string;
+    options: string[];
+    correct_answer: string;
+  }[];
+};
 
 export default function Home() {
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [index, setIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/quiz")
+      .then((res) => res.json())
+      .then(setQuiz);
+  }, []);
+
+  if (!quiz) {
+    return (
+      <div className="container">
+        <p>Loading quiz...</p>
+      </div>
+    );
+  }
+
+  const q = quiz.questions[index];
+  const isLast = index === quiz.questions.length - 1;
+
+  const submitAnswer = () => {
+    if (!selected) return;
+
+    setSubmitted(true);
+
+    if (selected === q.correct_answer) {
+      setScore((s) => s + 1);
+    }
+  };
+
+  const nextQuestion = () => {
+    setIndex((i) => i + 1);
+    setSelected(null);
+    setSubmitted(false);
+  };
+
+  const restartQuiz = () => {
+    setIndex(0);
+    setScore(0);
+    setSelected(null);
+    setSubmitted(false);
+    setShowResults(false);
+  };
+
+  // Results Page
+  if (showResults) {
+    const percent = Math.round((score / quiz.questions.length) * 100);
+
+    return (
+      <div className="container center">
+        <h1>{quiz.quiz_name}</h1>
+
+        <div className="divider" />
+
+        <p className="score">
+          You scored <strong>{score}</strong> out of{" "}
+          {quiz.questions.length}
+        </p>
+
+        <p className="percent">{percent}%</p>
+
+        <div className="actions">
+          <button className="btn" onClick={restartQuiz}>
+            Play Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="container">
+      {/* Quiz Title */}
+      <div className="header">
+        <h1>{quiz.quiz_name}</h1>
+      </div>
+
+      {/* Progress */}
+      <div className="progress-text">
+        Question {index + 1} of {quiz.questions.length}
+      </div>
+
+      <div className="divider" />
+
+      {/* Question */}
+      <h2 className="question">
+        Question {index + 1}: {q.text}
+      </h2>
+
+      {/* Answer Options */}
+      <div className="options">
+        {q.options.map((opt, i) => {
+          const isSelected = selected === opt;
+
+          let className = "option";
+          if (submitted) {
+            if (opt === q.correct_answer) className += " correct";
+            else if (isSelected && opt !== q.correct_answer)
+              className += " wrong";
+          } else if (isSelected) {
+            className += " selected";
+          }
+
+          return (
+            <button
+              key={opt}
+              className={className}
+              onClick={() => !submitted && setSelected(opt)}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <strong>{String.fromCharCode(65 + i)}.</strong> {opt}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Feedback */}
+      {submitted && (
+        <div className="feedback">
+          {selected === q.correct_answer ? (
+            <p className="correct-text">Correct!</p>
+          ) : (
+            <>
+              <p className="wrong-text">Not quite</p>
+              <p>Correct answer: {q.correct_answer}</p>
+            </>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      )}
+
+      {/* Actions */}
+      <div className="actions">
+        {!submitted && (
+          <button
+            className="btn"
+            onClick={submitAnswer}
+            disabled={!selected}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Submit Answer
+          </button>
+        )}
+
+        {submitted && !isLast && (
+          <button className="btn" onClick={nextQuestion}>
+            Next Question →
+          </button>
+        )}
+
+        {submitted && isLast && (
+          <button
+            className="btn"
+            onClick={() => setShowResults(true)}
           >
-            Documentation
-          </a>
-        </div>
-      </main>
+            See My Results
+          </button>
+        )}
+      </div>
     </div>
   );
 }
