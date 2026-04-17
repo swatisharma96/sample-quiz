@@ -11,8 +11,8 @@ export async function GET() {
       },
     });
 
-    if (!quiz) {
-      return Response.json({ error: "Quiz not found" }, { status: 404 });
+    if (!quiz || !quiz.questions?.length) {
+    return Response.json({ error: "No quiz found" }, { status: 404 });
     }
 
     return Response.json({

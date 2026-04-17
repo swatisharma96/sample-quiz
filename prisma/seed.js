@@ -3,12 +3,13 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function main() {
-  // Clean old data (safe reset)
+  console.log("Seeding database...");
+
+  // safer reset (works in Postgres too)
   await prisma.answer.deleteMany();
   await prisma.question.deleteMany();
   await prisma.quiz.deleteMany();
 
-  // Create quiz
   const quiz = await prisma.quiz.create({
     data: {
       title: "General Knowledge Quiz",
@@ -74,18 +75,16 @@ async function main() {
       },
     });
 
-    for (const a of q.answers) {
-      await prisma.answer.create({
-        data: {
-          question_id: question.id,
-          answer_text: a.text,
-          is_correct: a.correct,
-        },
-      });
-    }
+    await prisma.answer.createMany({
+      data: q.answers.map((a) => ({
+        question_id: question.id,
+        answer_text: a.text,
+        is_correct: a.correct,
+      })),
+    });
   }
 
-  console.log("✅ Database seeded successfully!");
+  console.log("Database seeded successfully!");
 }
 
 main()
