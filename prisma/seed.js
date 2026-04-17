@@ -3,19 +3,30 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding database...");
+  console.log("🌱 Starting database seed...");
 
-  // safer reset (works in Postgres too)
-  await prisma.answer.deleteMany();
-  await prisma.question.deleteMany();
-  await prisma.quiz.deleteMany();
+  // 1. Check if DB already has data
+  const existingQuiz = await prisma.quiz.findFirst({
+    include: {
+      questions: true,
+    },
+  });
 
+  if (existingQuiz && existingQuiz.questions.length > 0) {
+    console.log("✅ Database already seeded. Skipping...");
+    return;
+  }
+
+  // 2. Create quiz
   const quiz = await prisma.quiz.create({
     data: {
       title: "General Knowledge Quiz",
     },
   });
 
+  console.log("🧠 Created quiz:", quiz.title);
+
+  // 3. Question data
   const questions = [
     {
       text: "What is the capital of California?",
@@ -64,6 +75,7 @@ async function main() {
     },
   ];
 
+  // 4. Insert questions + answers
   for (let i = 0; i < questions.length; i++) {
     const q = questions[i];
 
@@ -84,12 +96,12 @@ async function main() {
     });
   }
 
-  console.log("Database seeded successfully!");
+  console.log("🎉 Seed completed successfully!");
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("❌ Seed error:", e);
     process.exit(1);
   })
   .finally(async () => {
