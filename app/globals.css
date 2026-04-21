@@ -67,6 +67,7 @@ body {
   text-align: left;
   cursor: pointer;
   transition: all 0.15s ease;
+  color: #111;
 }
 
 .option:hover {
