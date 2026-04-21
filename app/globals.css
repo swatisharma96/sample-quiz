@@ -75,6 +75,11 @@ body {
   border-color: #111;
 }
 
+.option { # overrides mobile safari default button styles
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* Selected */
 .selected {
   font-weight: 600;
